@@ -1,6 +1,6 @@
 import PoiUser from "../model/PoiUser.js";
 
-export async function getAllPoiUsers(req, res) {
+export async function getAllPoiUser(req, res) {
     try {
         const pois = await PoiUser.findAll();
         res.json(pois);
