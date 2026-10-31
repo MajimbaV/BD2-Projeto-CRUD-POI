@@ -7,18 +7,21 @@ import { DataTypes } from "sequelize";
 const PoiUser = sequelize.define(
     'PoiUser', {
         nome: {
-            type: DataTypes.STRING,
+            type: DataTypes.STRING(150),
             allowNull: false
         },
         descricao: {
-            type: DataTypes.STRING,
+            type: DataTypes.TEXT,
+        },
+        endereco: {
+            type: DataTypes.TEXT,
         },
         categoria: {
             type: DataTypes.STRING,
             enum: ['Residêncial', 'Trabalho', 'Saúde', 'Lazer', 'Outro'],
         },
         localizacao:{
-            type: DataTypes.GEOMETRY('POINT'),
+            type: DataTypes.GEOMETRY('POINT', 4326),
             allowNull: false
         },
         id: {
@@ -26,6 +29,10 @@ const PoiUser = sequelize.define(
             defaultValue: DataTypes.UUIDV4,
             primaryKey: true
         }
+    },
+    {
+        tableName: 'locais_interesse',
+        underscored: true,
     }
 )
 
