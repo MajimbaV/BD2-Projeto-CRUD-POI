@@ -159,9 +159,57 @@
         <div class="map-empty" id="map-empty">O mapa não pôde ser carregado. A lista continua disponível.</div>
       </section>
     </div>
-  </main>
+  <!-- Modal de Detalhes da Escola (PostGIS) -->
+  <div class="modal-overlay" id="school-modal-overlay" hidden>
+    <div class="modal-container" role="dialog" aria-modal="true" aria-labelledby="modal-school-name">
+      <div class="modal-header">
+        <div class="modal-header-info">
+          <span class="modal-tag" id="modal-school-municipio">Paraíba</span>
+          <h2 class="modal-title" id="modal-school-name">Nome da Escola</h2>
+          <p class="modal-subtitle" id="modal-school-bairro">Bairro · Endereço</p>
+        </div>
+        <button class="modal-close-button" id="modal-close-button" type="button" aria-label="Fechar modal">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Card de Destaque da Pontuação Ponderada -->
+        <div class="modal-score-card">
+          <div class="modal-score-header">
+            <div>
+              <span class="score-label">Índice de Infraestrutura (Soma Ponderada)</span>
+              <div class="score-value-row">
+                <span class="score-number" id="modal-score-number">18</span>
+                <span class="score-total">/ 18 pts</span>
+                <span class="score-badge" id="modal-score-badge">Excelente</span>
+              </div>
+            </div>
+            <div class="score-distance-wrap" id="modal-distance-wrap">
+              <span class="dist-label">Distância</span>
+              <strong class="dist-value" id="modal-distance-value">850 m</strong>
+            </div>
+          </div>
+          <!-- Barra de progresso visual -->
+          <div class="score-bar-track">
+            <div class="score-bar-fill" id="modal-score-bar" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <!-- Seção dos 10 Indicadores -->
+        <h3 class="modal-section-title">Critérios do Algoritmo e Pesos</h3>
+        <p class="modal-section-desc">Avaliação detalhada dos 10 itens de infraestrutura escolar:</p>
+
+        <div class="indicators-grid" id="modal-indicators-grid">
+          <!-- Preenchido dinamicamente via JS -->
+        </div>
+
+        <div class="modal-footer-info">
+          <small>Código INEP: <strong id="modal-school-inep">--</strong> · Dados oficiais do Censo Escolar da Paraíba (PostGIS)</small>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="script.js?v=4"></script>
+  <script src="script.js?v=5"></script>
 </body>
 </html>
