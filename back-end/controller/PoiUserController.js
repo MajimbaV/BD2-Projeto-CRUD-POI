@@ -62,6 +62,27 @@ export async function getAllPoiUser(req, res) {
     }
 }
 
+export async function getPoiUserById(req, res) {
+    const { id } = req.params;
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    if (!uuidPattern.test(id)) {
+        return res.status(400).json({ message: "ID inválido." });
+    }
+
+    try {
+        const poi = await PoiUser.findByPk(id);
+        if (!poi) {
+            return res.status(404).json({ message: "Local não encontrado." });
+        }
+
+        res.json(poi);
+    } catch (error) {
+        console.error("Erro ao consultar ponto de interesse:", error);
+        res.status(500).json({ message: "Erro ao consultar ponto de interesse." });
+    }
+}
+
 export async function createPoiUser(req, res) {
     const { data, error } = validatePoiUserInput(req.body);
     if (error) {
