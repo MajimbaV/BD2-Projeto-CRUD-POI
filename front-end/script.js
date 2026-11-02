@@ -1,5 +1,5 @@
 // ============================================================================
-// script.js: Controle da Aplicação Web Espacial (PostGIS + Leaflet + Nominatim)
+// script.js: Aplicação Web Espacial Inteligente (PostGIS + Leaflet + Nominatim)
 // ============================================================================
 
 const apiBase = "http://localhost:3000/api";
@@ -11,11 +11,12 @@ const defaultLocation = { lat: -7.11532, lng: -34.861 };
 const favoritesKey = "pontos-por-perto-favorites";
 
 // Estado da Aplicação
-let currentView = "poi"; // "poi" (CRUD) ou "schools" (Escolas PostGIS)
+let currentView = "schools"; // Inicia mostrando as escolas
 let points = [];
 let schools = [];
-let userLocation = { ...defaultLocation };
-let hasUserLocation = false;
+let centerLocation = { ...defaultLocation }; // Centro atual de busca
+let radiusCircle = null; // Círculo visual do Leaflet
+let centerMarker = null; // Marcador do centro da busca
 let activeFilter = "all";
 let selectedItemId = null;
 let editingPointId = null;
@@ -45,7 +46,7 @@ const searchAddressButton = document.getElementById("search-address-button");
 const pointAddressInput = document.getElementById("point-address");
 
 // ============================================================================
-// 1. Funções de Apoio e Armazenamento Local
+// 1. Funções de Apoio e Formatação
 // ============================================================================
 
 function loadFavorites() {
@@ -53,7 +54,6 @@ function loadFavorites() {
     const saved = JSON.parse(localStorage.getItem(favoritesKey) || "[]");
     return new Set(Array.isArray(saved) ? saved.map(String) : []);
   } catch (error) {
-    console.warn("Não foi possível carregar os favoritos.", error);
     return new Set();
   }
 }
@@ -81,39 +81,57 @@ function setStatus(message, isError = false) {
 }
 
 // ============================================================================
-// 2. Geocodificação com Nominatim (OpenStreetMap)
+// 2. Geocodificação com Nominatim (Busca Inteligente)
 // ============================================================================
 
-async function buscarEnderecoNominatim(query) {
-  if (!query || query.trim().length < 3) {
-    setStatus("Digite um endereço mais completo para buscar.", true);
-    return;
-  }
+async function buscarLocalidadeGlobal(query) {
+  if (!query || query.trim().length < 3) return;
 
-  setStatus("Buscando coordenadas no Nominatim...");
-  searchAddressButton.disabled = true;
-
+  setStatus(`Buscando "${query}" no OpenStreetMap (Nominatim)...`);
   try {
-    // Foca a busca prioritariamente na Paraíba
     const consulta = `${query.trim()}, Paraíba, Brasil`;
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(consulta)}&limit=1`;
+    const res = await fetch(url, { headers: { "Accept-Language": "pt-BR" } });
+    const data = await res.json();
 
-    const response = await fetch(url, {
-      headers: { "Accept-Language": "pt-BR" }
-    });
-
-    if (!response.ok) throw new Error("Erro na resposta do serviço de geocodificação.");
-
-    const data = await response.json();
     if (!Array.isArray(data) || data.length === 0) {
-      // Tenta uma busca sem o sufixo restritivo
+      // Fallback sem sufixo restritivo
       const fallbackUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
       const fallbackResp = await fetch(fallbackUrl);
       const fallbackData = await fallbackResp.json();
       if (!Array.isArray(fallbackData) || fallbackData.length === 0) {
-        throw new Error("Endereço não localizado pelo Nominatim.");
+        setStatus(`Localidade "${query}" não encontrada no mapa.`, true);
+        return;
       }
       data.push(fallbackData[0]);
+    }
+
+    const { lat, lon, display_name } = data[0];
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lon);
+
+    // Voa com animação suave para o local e busca as escolas dali!
+    definirCentroDeBusca(latitude, longitude, `Buscando em: ${display_name.split(",")[0]}`);
+    setStatus(`Mapa centralizado em: ${display_name.split(",")[0]}`);
+  } catch (err) {
+    console.error("Erro no Nominatim:", err);
+    setStatus("Erro ao buscar localidade no Nominatim.", true);
+  }
+}
+
+async function buscarEnderecoCadastro(query) {
+  if (!query || query.trim().length < 3) return;
+  setStatus("Buscando endereço no Nominatim para o cadastro...");
+  searchAddressButton.disabled = true;
+
+  try {
+    const consulta = `${query.trim()}, Paraíba, Brasil`;
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(consulta)}&limit=1`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (!Array.isArray(data) || data.length === 0) {
+      throw new Error("Endereço não localizado.");
     }
 
     const { lat, lon, display_name } = data[0];
@@ -124,34 +142,79 @@ async function buscarEnderecoNominatim(query) {
     document.getElementById("point-longitude").value = longitude.toFixed(6);
     if (!pointAddressInput.value) pointAddressInput.value = display_name;
 
-    posicionarMarcadorFormulario(latitude, longitude, "Localização encontrada pelo Nominatim");
-    map.setView([latitude, longitude], 16);
-    setStatus("Coordenadas obtidas com sucesso pelo Nominatim!");
-  } catch (error) {
-    console.error("Erro no Nominatim:", error);
-    setStatus(`Falha na geocodificação: ${error.message}`, true);
+    posicionarMarcadorFormulario(latitude, longitude, "Local encontrado no Nominatim");
+    map.flyTo([latitude, longitude], 16);
+    setStatus("Coordenadas preenchidas via Nominatim!");
+  } catch (err) {
+    setStatus(`Nominatim: ${err.message}`, true);
   } finally {
     searchAddressButton.disabled = false;
   }
 }
 
-function posicionarMarcadorFormulario(lat, lng, popupText = "Local do cadastro") {
+// ============================================================================
+// 3. Controle Espacial do Centro de Busca e do Círculo de Raio
+// ============================================================================
+
+function definirCentroDeBusca(lat, lng, label = "Centro da busca") {
+  centerLocation = { lat, lng };
+
   if (!map) return;
-  if (tempFormMarker) {
-    tempFormMarker.setLatLng([lat, lng]);
+
+  // Atualiza ou cria o marcador do centro da busca
+  if (centerMarker) {
+    centerMarker.setLatLng([lat, lng]);
   } else {
-    tempFormMarker = L.marker([lat, lng], { draggable: true }).addTo(map);
-    tempFormMarker.on("dragend", () => {
-      const pos = tempFormMarker.getLatLng();
-      document.getElementById("point-latitude").value = pos.lat.toFixed(6);
-      document.getElementById("point-longitude").value = pos.lng.toFixed(6);
+    const centerIcon = L.divIcon({
+      className: "center-search-icon",
+      html: `<div style="background:#2563eb;color:#fff;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;border:3px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,0.3);font-size:14px;">📍</div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14]
     });
+    centerMarker = L.marker([lat, lng], { icon: centerIcon, zIndexOffset: 1000 }).addTo(map);
   }
-  tempFormMarker.bindPopup(popupText).openPopup();
+  centerMarker.bindPopup(`<strong>${escapeHtml(label)}</strong><br><small>Clique no mapa para mudar o centro</small>`);
+
+  atualizarCirculoDeRaio();
+  map.flyTo([lat, lng], Math.max(map.getZoom(), 13), { duration: 1 });
+
+  // Recarrega escolas se estiver na visão de escolas
+  if (currentView === "schools") {
+    loadSchoolsProximas(lat, lng, radiusSelect.value === "all" ? 5 : Number(radiusSelect.value));
+  }
+}
+
+function atualizarCirculoDeRaio() {
+  if (!map) return;
+  const raioKm = radiusSelect.value === "all" ? null : Number(radiusSelect.value);
+
+  if (!raioKm) {
+    if (radiusCircle) {
+      radiusCircle.remove();
+      radiusCircle = null;
+    }
+    return;
+  }
+
+  const raioMetros = raioKm * 1000;
+
+  if (radiusCircle) {
+    radiusCircle.setLatLng([centerLocation.lat, centerLocation.lng]);
+    radiusCircle.setRadius(raioMetros);
+  } else {
+    radiusCircle = L.circle([centerLocation.lat, centerLocation.lng], {
+      radius: raioMetros,
+      color: "#2563eb",
+      fillColor: "#3b82f6",
+      fillOpacity: 0.12,
+      weight: 1.5,
+      dashArray: "6, 6"
+    }).addTo(map);
+  }
 }
 
 // ============================================================================
-// 3. Integração com a API Backend (POIs e Escolas PostGIS)
+// 4. Integração com API Backend (PostGIS Escolas & CRUD POIs)
 // ============================================================================
 
 function normalizePoint(point) {
@@ -160,13 +223,9 @@ function normalizePoint(point) {
   const lat = Number(coordinates?.[1]);
   const lng = Number(coordinates?.[0]);
 
-  if (!id || !point.nome || !Number.isFinite(lat) || !Number.isFinite(lng)) {
-    throw new Error("Ponto com dados inválidos.");
-  }
-
   return {
     id,
-    name: String(point.nome),
+    name: String(point.nome || "Sem nome"),
     description: point.descricao ? String(point.descricao) : "",
     category: point.categoria ? String(point.categoria) : "Outro",
     address: point.endereco ? String(point.endereco) : "Endereço não informado",
@@ -176,22 +235,15 @@ function normalizePoint(point) {
 }
 
 async function loadPoints() {
-  setStatus("Carregando pontos de interesse...");
   try {
     const response = await fetch(poiApiUrl);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     points = data.map(normalizePoint);
-    document.getElementById("map-note").textContent = `${points.length} pontos cadastrados`;
-    setStatus(`${points.length} pontos de interesse carregados.`);
     if (currentView === "poi") render();
-    return true;
   } catch (error) {
-    console.error("Erro ao carregar pontos:", error);
+    console.error("Erro ao carregar POIs:", error);
     points = [];
-    setStatus(`Falha ao conectar na API: ${error.message}`, true);
-    if (currentView === "poi") render();
-    return false;
   }
 }
 
@@ -205,13 +257,13 @@ async function loadSchoolsProximas(lat, lng, raioKm = 2) {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     schools = await response.json();
 
-    document.getElementById("map-note").textContent = `${schools.length} escolas num raio de ${raioKm} km`;
-    setStatus(`${schools.length} escolas encontradas no raio selecionado.`);
+    document.getElementById("map-note").textContent = `${schools.length} melhores escolas em um raio de ${raioKm} km`;
+    setStatus(`${schools.length} escolas encontradas ordenadas pelo ranking de infraestrutura.`);
     render();
   } catch (error) {
-    console.error("Erro ao carregar escolas próximas:", error);
+    console.error("Erro ao carregar escolas:", error);
     schools = [];
-    setStatus(`Erro ao buscar escolas: ${error.message}`, true);
+    setStatus(`Erro ao consultar escolas: ${error.message}`, true);
     render();
   }
 }
@@ -221,20 +273,20 @@ async function loadSchoolsBbox() {
   const bounds = map.getBounds();
 
   try {
-    const url = `${escolasApiUrl}/bbox?minLon=${bounds.getWest()}&minLat=${bounds.getSouth()}&maxLon=${bounds.getEast()}&maxLat=${bounds.getNorth()}&limite=80`;
+    const url = `${escolasApiUrl}/bbox?minLon=${bounds.getWest()}&minLat=${bounds.getSouth()}&maxLon=${bounds.getEast()}&maxLat=${bounds.getNorth()}&limite=60`;
     const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) return;
     schools = await response.json();
 
-    document.getElementById("map-note").textContent = `${schools.length} escolas na área visível`;
+    document.getElementById("map-note").textContent = `${schools.length} escolas carregadas na área visível`;
     render();
   } catch (error) {
-    console.error("Erro ao carregar escolas por BBOX:", error);
+    console.error("Erro BBOX:", error);
   }
 }
 
 // ============================================================================
-// 4. Renderização da Interface e do Mapa
+// 5. Renderização dos Resultados e do Mapa
 // ============================================================================
 
 function render() {
@@ -246,7 +298,7 @@ function render() {
 }
 
 function renderPoiList() {
-  resultsTitle.textContent = "Meus Pontos de Interesse";
+  resultsTitle.textContent = "Meus Pontos de Interesse (CRUD)";
   categoryFilterWrap.hidden = false;
 
   const query = searchInput.value.trim().toLocaleLowerCase("pt-BR");
@@ -263,7 +315,7 @@ function renderPoiList() {
   count.textContent = `${visiblePoints.length} ${visiblePoints.length === 1 ? "local" : "locais"}`;
 
   if (visiblePoints.length === 0) {
-    list.innerHTML = '<div class="empty-state"><strong>Nenhum ponto encontrado</strong>Clique em "+ Novo ponto" para cadastrar um local.</div>';
+    list.innerHTML = '<div class="empty-state"><strong>Nenhum ponto de interesse cadastrado</strong>Clique em "+ Novo ponto" para adicionar seu primeiro local.</div>';
   } else {
     list.innerHTML = visiblePoints.map((point) => {
       const isFavorite = favorites.has(point.id);
@@ -279,18 +331,18 @@ function renderPoiList() {
               <span class="tag">${escapeHtml(point.category)}</span>
             </div>
             <button class="find-schools-button" type="button" data-find-schools-lat="${point.lat}" data-find-schools-lng="${point.lng}" data-find-schools-name="${escapeHtml(point.name)}">
-              🏫 Ver melhores escolas perto daqui
+              🏫 Buscar escolas próximas deste local
             </button>
           </div>
           <div class="card-actions">
-            <button class="card-action-button favorite${isFavorite ? " active" : ""}" type="button" data-favorite-id="${escapeHtml(point.id)}" title="${isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}">
-              <svg viewBox="0 0 24 24" fill="${isFavorite ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg>
+            <button class="card-action-button favorite${isFavorite ? " active" : ""}" type="button" data-favorite-id="${escapeHtml(point.id)}" title="Favoritar">
+              <svg viewBox="0 0 24 24" fill="${isFavorite ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg>
             </button>
-            <button class="card-action-button edit-action" type="button" data-edit-id="${escapeHtml(point.id)}" title="Editar ponto">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>
+            <button class="card-action-button edit-action" type="button" data-edit-id="${escapeHtml(point.id)}" title="Editar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>
             </button>
-            <button class="card-action-button delete-action" type="button" data-delete-id="${escapeHtml(point.id)}" title="Excluir ponto">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg>
+            <button class="card-action-button delete-action" type="button" data-delete-id="${escapeHtml(point.id)}" title="Excluir">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg>
             </button>
           </div>
         </article>
@@ -321,7 +373,7 @@ function renderSchoolsList() {
   count.textContent = `${filtered.length} ${filtered.length === 1 ? "escola" : "escolas"}`;
 
   if (filtered.length === 0) {
-    list.innerHTML = '<div class="empty-state"><strong>Nenhuma escola na área selecionada</strong>Mova o mapa ou amplie a distância máxima na busca.</div>';
+    list.innerHTML = '<div class="empty-state"><strong>Nenhuma escola encontrada nesta área</strong>Dica: clique em qualquer lugar do mapa para mudar o centro da busca.</div>';
   } else {
     list.innerHTML = filtered.map((school) => {
       const score = Number(school.score_infraestrutura || 0);
@@ -392,20 +444,28 @@ function renderSchoolMarkers(visibleSchools) {
     const lng = Number(school.longitude);
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
+    const score = Number(school.score_infraestrutura || 0);
+    const color = score >= 14 ? "#10b981" : (score >= 8 ? "#f59e0b" : "#ef4444");
+
     const popup = `
-      <strong>${escapeHtml(school.no_escola)}</strong><br>
-      <span>${escapeHtml(school.municipio)} - PB</span><br>
-      <strong>Score: ${school.score_infraestrutura}/18 pts</strong><br>
-      ${school.distancia_metros ? `<small>Distância: ${formatDistance(Number(school.distancia_metros))}</small>` : ""}
+      <div style="min-width: 180px;">
+        <strong style="font-size: 14px;">${escapeHtml(school.no_escola)}</strong><br>
+        <span style="color:#666;">${escapeHtml(school.municipio)}${school.bairro ? ` (${escapeHtml(school.bairro)})` : ""}</span><br><br>
+        <div style="display:flex; justify-content:space-between; align-items:center; background:#f4f4f5; padding:6px 8px; border-radius:6px;">
+          <span>Nota Infraestrutura:</span>
+          <strong style="color:${color}; font-size:14px;">${score}/18 pts</strong>
+        </div>
+        ${school.distancia_metros ? `<p style="margin:6px 0 0; font-size:12px; color:#444;">📍 A ${formatDistance(Number(school.distancia_metros))} do centro de busca</p>` : ""}
+      </div>
     `;
 
     const marker = L.circleMarker([lat, lng], {
-      radius: 8,
-      fillColor: school.score_infraestrutura >= 14 ? "#10b981" : (school.score_infraestrutura >= 8 ? "#f59e0b" : "#ef4444"),
-      color: "#fff",
-      weight: 2,
+      radius: 9,
+      fillColor: color,
+      color: "#ffffff",
+      weight: 2.5,
       opacity: 1,
-      fillOpacity: 0.9
+      fillOpacity: 0.95
     }).addTo(map).bindPopup(popup);
 
     marker.on("click", () => {
@@ -422,10 +482,7 @@ window.buscarEscolasPertoDe = function(lat, lng, nome) {
   tabSchools.classList.add("active");
   tabPoi.classList.remove("active");
   crudSection.hidden = true;
-  userLocation = { lat, lng };
-  document.getElementById("map-note").textContent = `Escolas próximas a: ${nome}`;
-  map.setView([lat, lng], 14);
-  loadSchoolsProximas(lat, lng, radiusSelect.value === "all" ? 5 : Number(radiusSelect.value));
+  definirCentroDeBusca(lat, lng, `Ponto: ${nome}`);
 };
 
 function selectPoint(id, openPopup = true) {
@@ -434,45 +491,80 @@ function selectPoint(id, openPopup = true) {
   const marker = markers.get(id);
   const point = points.find((item) => item.id === id);
   if (marker && point && map) {
-    map.setView([point.lat, point.lng], Math.max(map.getZoom(), 15));
+    map.flyTo([point.lat, point.lng], Math.max(map.getZoom(), 15));
     if (openPopup) marker.openPopup();
   }
 }
 
+function selectSchool(coEscola) {
+  selectedItemId = coEscola;
+  render();
+  const marker = schoolMarkers.get(coEscola);
+  const school = schools.find((s) => s.co_escola === coEscola);
+  if (marker && school && map) {
+    map.flyTo([Number(school.latitude), Number(school.longitude)], Math.max(map.getZoom(), 16));
+    marker.openPopup();
+  }
+}
+
 // ============================================================================
-// 5. Inicialização do Mapa Leaflet
+// 6. Inicialização do Mapa Leaflet
 // ============================================================================
 
 function initMap() {
   if (!window.L) return;
 
-  map = L.map("map", { scrollWheelZoom: false }).setView([userLocation.lat, userLocation.lng], 13);
+  map = L.map("map", { scrollWheelZoom: true }).setView([centerLocation.lat, centerLocation.lng], 13);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   }).addTo(map);
 
-  // Clique no mapa para posicionar marcador no formulário de cadastro
+  // CLIQUE NO MAPA INTELIGENTE:
   map.on("click", (e) => {
+    const { lat, lng } = e.latlng;
+
+    // Se o formulário de cadastro estiver aberto, preenche o cadastro:
     if (!pointForm.hidden) {
-      const { lat, lng } = e.latlng;
       document.getElementById("point-latitude").value = lat.toFixed(6);
       document.getElementById("point-longitude").value = lng.toFixed(6);
-      posicionarMarcadorFormulario(lat, lng, "Ponto selecionado no mapa");
+      posicionarMarcadorFormulario(lat, lng, "Coordenadas marcadas pelo clique");
       setStatus("Coordenadas atualizadas pelo clique no mapa.");
+    } else {
+      // Se não, muda o centro de busca de escolas para aquele clique!
+      definirCentroDeBusca(lat, lng, "Ponto clicado no mapa");
+      setStatus("Centro da busca movido para o ponto clicado!");
     }
   });
 
-  // Requisito BBOX: Carrega escolas conforme o usuário move o mapa
+  // Movimento livre do mapa (BBOX):
   map.on("moveend", () => {
     if (currentView === "schools" && radiusSelect.value === "all") {
       loadSchoolsBbox();
     }
   });
+
+  // Cria o marcador central e o círculo inicial
+  definirCentroDeBusca(centerLocation.lat, centerLocation.lng, "João Pessoa, PB");
+}
+
+function posicionarMarcadorFormulario(lat, lng, popupText = "Local do cadastro") {
+  if (!map) return;
+  if (tempFormMarker) {
+    tempFormMarker.setLatLng([lat, lng]);
+  } else {
+    tempFormMarker = L.marker([lat, lng], { draggable: true }).addTo(map);
+    tempFormMarker.on("dragend", () => {
+      const pos = tempFormMarker.getLatLng();
+      document.getElementById("point-latitude").value = pos.lat.toFixed(6);
+      document.getElementById("point-longitude").value = pos.lng.toFixed(6);
+    });
+  }
+  tempFormMarker.bindPopup(popupText).openPopup();
 }
 
 // ============================================================================
-// 6. Formulário de CRUD de Ponto de Interesse
+// 7. Formulário de CRUD de Ponto de Interesse
 // ============================================================================
 
 function openPointForm(point = null) {
@@ -484,8 +576,8 @@ function openPointForm(point = null) {
   document.getElementById("point-category").value = point?.category || "";
   document.getElementById("point-address").value = point?.address === "Endereço não informado" ? "" : (point?.address || "");
   
-  const lat = point?.lat ?? userLocation.lat;
-  const lng = point?.lng ?? userLocation.lng;
+  const lat = point?.lat ?? centerLocation.lat;
+  const lng = point?.lng ?? centerLocation.lng;
   document.getElementById("point-latitude").value = lat.toFixed(6);
   document.getElementById("point-longitude").value = lng.toFixed(6);
 
@@ -533,7 +625,7 @@ pointForm.addEventListener("submit", async (event) => {
 
     closePointForm();
     await loadPoints();
-    setStatus(isEditing ? "Ponto atualizado com sucesso!" : "Ponto cadastrado com sucesso!");
+    setStatus(isEditing ? "Ponto atualizado com sucesso!" : "Ponto cadastrado com sucesso no Supabase!");
   } catch (error) {
     console.error("Erro ao salvar:", error);
     setStatus(`Erro ao salvar ponto: ${error.message}`, true);
@@ -542,15 +634,23 @@ pointForm.addEventListener("submit", async (event) => {
   }
 });
 
-// Eventos de Botões e Interações
+// Eventos de Busca no Formulário
 searchAddressButton.addEventListener("click", () => {
-  buscarEnderecoNominatim(pointAddressInput.value);
+  buscarEnderecoCadastro(pointAddressInput.value);
 });
 
 pointAddressInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     e.preventDefault();
-    buscarEnderecoNominatim(pointAddressInput.value);
+    buscarEnderecoCadastro(pointAddressInput.value);
+  }
+});
+
+// Busca Global no Campo Principal
+searchInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    buscarLocalidadeGlobal(searchInput.value);
   }
 });
 
@@ -572,16 +672,18 @@ tabSchools.addEventListener("click", () => {
   tabPoi.classList.remove("active");
   crudSection.hidden = true;
   if (radiusSelect.value !== "all") {
-    loadSchoolsProximas(userLocation.lat, userLocation.lng, Number(radiusSelect.value));
+    loadSchoolsProximas(centerLocation.lat, centerLocation.lng, Number(radiusSelect.value));
   } else {
     loadSchoolsBbox();
   }
 });
 
+// Mudança de Raio
 radiusSelect.addEventListener("change", () => {
+  atualizarCirculoDeRaio();
   if (currentView === "schools") {
     if (radiusSelect.value !== "all") {
-      loadSchoolsProximas(userLocation.lat, userLocation.lng, Number(radiusSelect.value));
+      loadSchoolsProximas(centerLocation.lat, centerLocation.lng, Number(radiusSelect.value));
     } else {
       loadSchoolsBbox();
     }
@@ -590,11 +692,11 @@ radiusSelect.addEventListener("change", () => {
   }
 });
 
-[searchInput, categorySelect, sortSelect].forEach((el) => {
-  el.addEventListener(el === searchInput ? "input" : "change", render);
+[categorySelect, sortSelect].forEach((el) => {
+  el.addEventListener("change", render);
 });
 
-// Deleção e Edição na Lista de POIs
+// Deleção e Cliques na Lista
 list.addEventListener("click", (event) => {
   const findButton = event.target.closest("[data-find-schools-lat]");
   if (findButton) {
@@ -602,6 +704,12 @@ list.addEventListener("click", (event) => {
     const lng = Number(findButton.dataset.findSchoolsLng);
     const nome = findButton.dataset.findSchoolsName;
     window.buscarEscolasPertoDe(lat, lng, nome);
+    return;
+  }
+
+  const schoolCard = event.target.closest("[data-school-id]");
+  if (schoolCard) {
+    selectSchool(Number(schoolCard.dataset.schoolId));
     return;
   }
 
@@ -641,16 +749,8 @@ document.getElementById("location-button").addEventListener("click", () => {
   setStatus("Obtendo localização do navegador...");
   navigator.geolocation.getCurrentPosition(
     ({ coords }) => {
-      userLocation = { lat: coords.latitude, lng: coords.longitude };
-      hasUserLocation = true;
-      map.setView([userLocation.lat, userLocation.lng], 14);
-      L.marker([userLocation.lat, userLocation.lng]).addTo(map).bindPopup("Você está aqui!").openPopup();
-      setStatus("Localização do navegador obtida com sucesso!");
-      if (currentView === "schools") {
-        loadSchoolsProximas(userLocation.lat, userLocation.lng, radiusSelect.value === "all" ? 2 : Number(radiusSelect.value));
-      } else {
-        render();
-      }
+      definirCentroDeBusca(coords.latitude, coords.longitude, "Sua localização atual");
+      setStatus("Localização obtida com sucesso! Escolas ao redor carregadas.");
     },
     (err) => setStatus("Não foi possível obter sua localização.", true),
     { timeout: 10000 }
