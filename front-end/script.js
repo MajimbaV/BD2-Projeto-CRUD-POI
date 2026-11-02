@@ -72,6 +72,16 @@ function loadFavorites() {
   }
 }
 
+function toggleFavorite(id) {
+  if (favorites.has(id)) {
+    favorites.delete(id);
+  } else {
+    favorites.add(id);
+  }
+  localStorage.setItem(favoritesKey, JSON.stringify(Array.from(favorites)));
+  render();
+}
+
 function escapeHtml(value) {
   if (value == null) return "";
   return String(value).replace(/[&<>"']/g, (character) => ({
@@ -790,6 +800,15 @@ radiusSelect.addEventListener("change", () => {
 });
 
 list.addEventListener("click", (event) => {
+  const favoriteButton = event.target.closest("[data-favorite-id]");
+  if (favoriteButton) {
+    event.stopPropagation();
+    const id = favoriteButton.dataset.favoriteId;
+    toggleFavorite(id);
+    return;
+  }
+
+
   const findButton = event.target.closest("[data-find-schools-lat]");
   if (findButton) {
     const lat = Number(findButton.dataset.findSchoolsLat);
