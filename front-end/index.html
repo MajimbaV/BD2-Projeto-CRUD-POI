@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#f6f8f5">
-  <title>Escolas da Paraíba e Pontos de Interesse (PostGIS)</title>
+  <title>Pontos de interesse por perto</title>
   <link rel="preconnect" href="https://unpkg.com">
   <link rel="preconnect" href="https://tile.openstreetmap.org">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -16,38 +16,31 @@
       <span class="brand-mark" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/><path d="M9 10h6"/></svg>
       </span>
-      Escolas & Pontos PB
+      pontos por perto
     </div>
-    <span class="top-label">Banco de Dados Espacial · PostGIS</span>
+    <span class="top-label">Explore seus pontos de interesse</span>
   </header>
 
   <main>
     <section class="intro">
-      <div class="eyebrow">Projeto de BD2 · PostGIS & Leaflet</div>
-      <h1>Encontre as melhores escolas<br>perto de você na Paraíba.</h1>
-      <p>Cadastre seus locais de referência e veja as escolas com melhor infraestrutura num raio de distância.</p>
+      <div class="eyebrow">Seus lugares, em um só mapa</div>
+      <h1>Encontre pontos<br>perto de você.</h1>
+      <p>Pesquise por nome, endereço ou categoria e explore no mapa.</p>
     </section>
 
-    <!-- Alternador de Visão: Meus Locais vs Escolas Ranqueadas -->
-    <div class="view-switch-row">
-      <button class="view-tab active" id="tab-poi" type="button">📍 Meus Pontos de Interesse (CRUD)</button>
-      <button class="view-tab" id="tab-schools" type="button">🏫 Melhores Escolas (Ranking Ponderado)</button>
-    </div>
-
-    <!-- Painel de Cadastro do CRUD de POI com Geocodificação Nominatim -->
-    <section class="crud-panel" id="crud-section" aria-label="Cadastro de ponto de interesse">
+    <section class="crud-panel" aria-label="Cadastro de ponto de interesse">
       <div class="crud-heading">
         <div>
           <h2 id="form-title">Cadastrar ponto</h2>
-          <p>Adicione um local de referência ou edite um ponto existente.</p>
+          <p>Adicione um local ou edite um ponto existente.</p>
         </div>
-        <button class="primary-button" id="new-point-button" type="button">+ Novo ponto</button>
+        <button class="primary-button" id="new-point-button" type="button">Novo ponto</button>
       </div>
       <form id="point-form" hidden>
         <div class="form-grid">
           <div class="field">
             <label for="point-name">Nome *</label>
-            <input id="point-name" name="nome" maxlength="150" placeholder="Ex: Minha Casa, Trabalho..." required>
+            <input id="point-name" name="nome" maxlength="150" required>
           </div>
           <div class="field">
             <label for="point-category">Categoria</label>
@@ -60,19 +53,13 @@
               <option value="Outro">Outro</option>
             </select>
           </div>
-          <div class="field full-width">
-            <label for="point-address">Endereço (Geocodificação Nominatim)</label>
-            <div class="input-action-wrap">
-              <input id="point-address" name="endereco" placeholder="Ex: Av. Epitácio Pessoa, João Pessoa, PB">
-              <button class="secondary-button" id="search-address-button" type="button" title="Buscar coordenadas pelo endereço usando Nominatim">
-                🔍 Buscar no mapa
-              </button>
-            </div>
-            <small class="field-hint">💡 Digite o endereço e clique em "Buscar no mapa" ou clique direto em qualquer ponto do mapa abaixo.</small>
+          <div class="field">
+            <label for="point-address">Endereço</label>
+            <input id="point-address" name="endereco">
           </div>
           <div class="field">
             <label for="point-description">Descrição</label>
-            <input id="point-description" name="descricao" placeholder="Opcional">
+            <input id="point-description" name="descricao">
           </div>
           <div class="field">
             <label for="point-latitude">Latitude *</label>
@@ -90,16 +77,15 @@
       </form>
     </section>
 
-    <!-- Painel de Busca e Filtros -->
     <section class="search-panel" aria-label="Busca de pontos de interesse">
       <div class="field search-field">
-        <label for="search" id="search-label">Buscar por nome ou endereço</label>
+        <label for="search">Buscar ponto ou endereço</label>
         <div class="input-wrap">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
-          <input id="search" type="search" placeholder="Ex.: Centro, Escola..." autocomplete="off">
+          <input id="search" type="search" placeholder="Ex.: Casa, trabalho..." autocomplete="off">
         </div>
       </div>
-      <div class="field" id="category-filter-wrap">
+      <div class="field">
         <label for="category">Categoria</label>
         <select id="category">
           <option value="all">Todas as categorias</option>
@@ -114,11 +100,11 @@
         <label for="radius">Distância máxima</label>
         <select id="radius">
           <option value="all">Qualquer distância</option>
-          <option value="1">Até 1 km</option>
-          <option value="2" selected>Até 2 km</option>
-          <option value="5">Até 5 km</option>
+          <option value="2">Até 2 km</option>
+          <option value="4">Até 4 km</option>
+          <option value="6">Até 6 km</option>
+          <option value="8">Até 8 km</option>
           <option value="10">Até 10 km</option>
-          <option value="20">Até 20 km</option>
         </select>
       </div>
       <button class="location-button" id="location-button" type="button">
@@ -135,81 +121,31 @@
       <label class="sort-wrap" for="sort">
         Ordenar por
         <select id="sort">
-          <option value="score">Melhor infraestrutura (Score)</option>
-          <option value="distance" selected>Mais próximos</option>
+          <option value="distance">Mais próximos</option>
           <option value="name">Nome (A–Z)</option>
         </select>
       </label>
     </div>
 
-    <!-- Grade de Conteúdo: Lista na Esquerda, Mapa no Leaflet na Direita -->
     <div class="content-grid">
       <section class="results-column" aria-label="Resultados da busca">
         <div class="results-heading">
-          <h2 id="results-title">Pontos encontrados</h2>
+          <h2>Pontos encontrados</h2>
           <span class="result-count" id="result-count" aria-live="polite"></span>
         </div>
         <div class="school-list" id="poi-list"></div>
         <p class="status-message" id="status-message" role="status" aria-live="polite"></p>
-        <p class="footer-note">Cálculo de infraestrutura ponderada PostGIS: (PNE×3 + LabInfo×3 + Biblio×2 + LabCiências×2 + BandaLarga×2 + PC×2 + Net×1 + Leitura×1 + Quadra×1 + Parque×1).</p>
+        <p class="footer-note">Os pontos exibidos são carregados da API do projeto. Favoritos ficam salvos neste navegador.</p>
       </section>
-      <section class="map-panel" aria-label="Mapa espacial">
+      <section class="map-panel" aria-label="Mapa de pontos de interesse">
         <div id="map"></div>
-        <div class="map-note" id="map-note">Carregando mapa da Paraíba...</div>
-        <div class="map-empty" id="map-empty">O mapa não pôde ser carregado. A lista continua disponível.</div>
+        <div class="map-note" id="map-note">Carregando pontos de interesse...</div>
+        <div class="map-empty" id="map-empty">O mapa não pôde ser carregado. A lista de pontos continua disponível.</div>
       </section>
     </div>
-  <!-- Modal de Detalhes da Escola (PostGIS) -->
-  <div class="modal-overlay" id="school-modal-overlay" hidden>
-    <div class="modal-container" role="dialog" aria-modal="true" aria-labelledby="modal-school-name">
-      <div class="modal-header">
-        <div class="modal-header-info">
-          <span class="modal-tag" id="modal-school-municipio">Paraíba</span>
-          <h2 class="modal-title" id="modal-school-name">Nome da Escola</h2>
-          <p class="modal-subtitle" id="modal-school-bairro">Bairro · Endereço</p>
-        </div>
-        <button class="modal-close-button" id="modal-close-button" type="button" aria-label="Fechar modal">✕</button>
-      </div>
-
-      <div class="modal-body">
-        <!-- Card de Destaque da Pontuação Ponderada -->
-        <div class="modal-score-card">
-          <div class="modal-score-header">
-            <div>
-              <span class="score-label">Índice de Infraestrutura (Soma Ponderada)</span>
-              <div class="score-value-row">
-                <span class="score-number" id="modal-score-number">18</span>
-                <span class="score-total">/ 18 pts</span>
-                <span class="score-badge" id="modal-score-badge">Excelente</span>
-              </div>
-            </div>
-            <div class="score-distance-wrap" id="modal-distance-wrap">
-              <span class="dist-label">Distância</span>
-              <strong class="dist-value" id="modal-distance-value">850 m</strong>
-            </div>
-          </div>
-          <!-- Barra de progresso visual -->
-          <div class="score-bar-track">
-            <div class="score-bar-fill" id="modal-score-bar" style="width: 100%;"></div>
-          </div>
-        </div>
-
-        <!-- Seção dos 10 Indicadores -->
-        <h3 class="modal-section-title">Critérios do Algoritmo e Pesos</h3>
-        <p class="modal-section-desc">Avaliação detalhada dos 10 itens de infraestrutura escolar:</p>
-
-        <div class="indicators-grid" id="modal-indicators-grid">
-          <!-- Preenchido dinamicamente via JS -->
-        </div>
-
-        <div class="modal-footer-info">
-          <small>Código INEP: <strong id="modal-school-inep">--</strong> · Dados oficiais do Censo Escolar da Paraíba (PostGIS)</small>
-        </div>
-      </div>
-    </div>
-  </div>
+  </main>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="script.js?v=5"></script>
+  <script src="script.js?v=3"></script>
 </body>
 </html>

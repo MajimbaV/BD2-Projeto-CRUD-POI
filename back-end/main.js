@@ -3,7 +3,6 @@ import cors from "cors";
 import dotenv from "dotenv";
 
 import PoiUserRouter from "./router/PoiUserRouter.js";
-import EscolaRouter from "./router/EscolaRouter.js";
 import PoiUser from "./model/PoiUser.js";
 import sequelize from "./database/sequelize.js";
 
@@ -15,19 +14,7 @@ app.use(express.json());
 
 const PORT = process.env.API_PORT ? Number(process.env.API_PORT) : 3000;
 
-app.get("/", (req, res) => {
-    res.json({
-        mensagem: "API de Escolas e Pontos de Interesse (PostGIS) ativa.",
-        rotas: [
-            "/api/poiuser",
-            "/api/escolas/proximas?latitude=...&longitude=...&raio=2000",
-            "/api/escolas/bbox?minLon=...&minLat=...&maxLon=...&maxLat=..."
-        ]
-    });
-});
-
 app.use("/api/poiuser", PoiUserRouter);
-app.use("/api/escolas", EscolaRouter);
 
 try {
     if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
