@@ -8,7 +8,11 @@ const PoiUser = sequelize.define(
     'PoiUser', {
         nome: {
             type: DataTypes.STRING(150),
-            allowNull: false
+            allowNull: false,
+            validate: {
+                notEmpty: true,
+                len: [1, 150]
+            }
         },
         descricao: {
             type: DataTypes.TEXT,
@@ -18,7 +22,9 @@ const PoiUser = sequelize.define(
         },
         categoria: {
             type: DataTypes.STRING,
-            enum: ['Residêncial', 'Trabalho', 'Saúde', 'Lazer', 'Outro'],
+            validate: {
+                isIn: [['Residêncial', 'Trabalho', 'Saúde', 'Lazer', 'Outro']]
+            }
         },
         localizacao:{
             type: DataTypes.GEOMETRY('POINT', 4326),
@@ -35,7 +41,5 @@ const PoiUser = sequelize.define(
         underscored: true,
     }
 )
-
-PoiUser.sync();
 
 export default PoiUser
