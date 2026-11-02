@@ -4,12 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#f6f8f5">
-  <title>Escolas por perto</title>
+  <title>Pontos de interesse por perto</title>
   <link rel="preconnect" href="https://unpkg.com">
   <link rel="preconnect" href="https://tile.openstreetmap.org">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="styles.css">
-
 </head>
 <body>
   <header class="topbar">
@@ -17,33 +16,84 @@
       <span class="brand-mark" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/><path d="M9 10h6"/></svg>
       </span>
-      escolas por perto
+      pontos por perto
     </div>
-    <span class="top-label">Encontre uma escola para sua família</span>
+    <span class="top-label">Explore seus pontos de interesse</span>
   </header>
 
   <main>
     <section class="intro">
-      <div class="eyebrow">Seu próximo passo começa aqui</div>
-      <h1>Encontre escolas<br>perto de você.</h1>
-      <p>Pesquise por nome, região ou tipo de ensino e explore no mapa.</p>
+      <div class="eyebrow">Seus lugares, em um só mapa</div>
+      <h1>Encontre pontos<br>perto de você.</h1>
+      <p>Pesquise por nome, endereço ou categoria e explore no mapa.</p>
     </section>
 
-    <section class="search-panel" aria-label="Busca de escolas">
+    <section class="crud-panel" aria-label="Cadastro de ponto de interesse">
+      <div class="crud-heading">
+        <div>
+          <h2 id="form-title">Cadastrar ponto</h2>
+          <p>Adicione um local ou edite um ponto existente.</p>
+        </div>
+        <button class="primary-button" id="new-point-button" type="button">Novo ponto</button>
+      </div>
+      <form id="point-form" hidden>
+        <div class="form-grid">
+          <div class="field">
+            <label for="point-name">Nome *</label>
+            <input id="point-name" name="nome" maxlength="150" required>
+          </div>
+          <div class="field">
+            <label for="point-category">Categoria</label>
+            <select id="point-category" name="categoria">
+              <option value="">Selecione</option>
+              <option value="Residêncial">Residencial</option>
+              <option value="Trabalho">Trabalho</option>
+              <option value="Saúde">Saúde</option>
+              <option value="Lazer">Lazer</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="point-address">Endereço</label>
+            <input id="point-address" name="endereco">
+          </div>
+          <div class="field">
+            <label for="point-description">Descrição</label>
+            <input id="point-description" name="descricao">
+          </div>
+          <div class="field">
+            <label for="point-latitude">Latitude *</label>
+            <input id="point-latitude" name="latitude" type="number" step="any" min="-90" max="90" required>
+          </div>
+          <div class="field">
+            <label for="point-longitude">Longitude *</label>
+            <input id="point-longitude" name="longitude" type="number" step="any" min="-180" max="180" required>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="primary-button" id="save-point-button" type="submit">Salvar ponto</button>
+          <button class="secondary-button" id="cancel-form-button" type="button">Cancelar</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="search-panel" aria-label="Busca de pontos de interesse">
       <div class="field search-field">
-        <label for="search">Buscar escola ou região</label>
+        <label for="search">Buscar ponto ou endereço</label>
         <div class="input-wrap">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
-          <input id="search" type="search" placeholder="Ex.: Escola, Pinheiros..." autocomplete="off">
+          <input id="search" type="search" placeholder="Ex.: Casa, trabalho..." autocomplete="off">
         </div>
       </div>
       <div class="field">
-        <label for="level">Etapa de ensino</label>
-        <select id="level">
-          <option value="all">Todas as etapas</option>
-          <option value="Infantil">Educação infantil</option>
-          <option value="Fundamental">Ensino fundamental</option>
-          <option value="Médio">Ensino médio</option>
+        <label for="category">Categoria</label>
+        <select id="category">
+          <option value="all">Todas as categorias</option>
+          <option value="Residêncial">Residencial</option>
+          <option value="Trabalho">Trabalho</option>
+          <option value="Saúde">Saúde</option>
+          <option value="Lazer">Lazer</option>
+          <option value="Outro">Outro</option>
         </select>
       </div>
       <div class="field">
@@ -64,16 +114,14 @@
     </section>
 
     <div class="filters-row">
-      <div class="filter-chips" role="group" aria-label="Filtros de categoria">
-        <button class="chip active" type="button" data-category="all" aria-pressed="true">Todas</button>
-        <button class="chip" type="button" data-category="Pública" aria-pressed="false">Públicas</button>
-        <button class="chip" type="button" data-category="Particular" aria-pressed="false">Particulares</button>
-        <button class="chip" type="button" data-category="favorites" aria-pressed="false">♡ Favoritas</button>
+      <div class="filter-chips" role="group" aria-label="Filtros de pontos">
+        <button class="chip active" type="button" data-filter="all" aria-pressed="true">Todos</button>
+        <button class="chip" type="button" data-filter="favorites" aria-pressed="false">♡ Favoritos</button>
       </div>
       <label class="sort-wrap" for="sort">
         Ordenar por
         <select id="sort">
-          <option value="distance">Mais próximas</option>
+          <option value="distance">Mais próximos</option>
           <option value="name">Nome (A–Z)</option>
         </select>
       </label>
@@ -82,255 +130,22 @@
     <div class="content-grid">
       <section class="results-column" aria-label="Resultados da busca">
         <div class="results-heading">
-          <h2>Escolas encontradas</h2>
+          <h2>Pontos encontrados</h2>
           <span class="result-count" id="result-count" aria-live="polite"></span>
         </div>
-        <div class="school-list" id="school-list"></div>
+        <div class="school-list" id="poi-list"></div>
         <p class="status-message" id="status-message" role="status" aria-live="polite"></p>
-        <p class="footer-note">Os locais exibidos são demonstrativos e servem para explorar a interface. A conexão com dados reais será feita posteriormente.</p>
+        <p class="footer-note">Os pontos exibidos são carregados da API do projeto. Favoritos ficam salvos neste navegador.</p>
       </section>
-      <section class="map-panel" aria-label="Mapa de escolas">
+      <section class="map-panel" aria-label="Mapa de pontos de interesse">
         <div id="map"></div>
-        <div class="map-note" id="map-note">São Paulo, SP · dados demonstrativos</div>
-        <div class="map-empty" id="map-empty">O mapa não pôde ser carregado. A lista de escolas continua disponível.</div>
+        <div class="map-note" id="map-note">Carregando pontos de interesse...</div>
+        <div class="map-empty" id="map-empty">O mapa não pôde ser carregado. A lista de pontos continua disponível.</div>
       </section>
     </div>
   </main>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script>
-    const schools = [
-      { id: 1, name: "Escola Horizonte", category: "Particular", levels: ["Infantil", "Fundamental"], address: "Rua Harmonia, 245 · Vila Madalena", lat: -23.5505, lng: -46.6914 },
-      { id: 2, name: "EMEF Caminhos do Saber", category: "Pública", levels: ["Fundamental"], address: "Rua Aspicuelta, 118 · Pinheiros", lat: -23.5563, lng: -46.6892 },
-      { id: 3, name: "Colégio Vila Nova", category: "Particular", levels: ["Infantil", "Fundamental", "Médio"], address: "Av. Faria Lima, 920 · Pinheiros", lat: -23.5677, lng: -46.6939 },
-      { id: 4, name: "Escola Municipal Monte Verde", category: "Pública", levels: ["Infantil", "Fundamental"], address: "Rua Fradique Coutinho, 640 · Pinheiros", lat: -23.5601, lng: -46.6831 },
-      { id: 5, name: "Instituto Aprender", category: "Particular", levels: ["Fundamental", "Médio"], address: "Rua dos Pinheiros, 510 · Pinheiros", lat: -23.5662, lng: -46.6812 },
-      { id: 6, name: "EE Professor Paulo Freire", category: "Pública", levels: ["Fundamental", "Médio"], address: "Rua Heitor Penteado, 1.200 · Sumarezinho", lat: -23.5462, lng: -46.6847 },
-      { id: 7, name: "Pequenos Exploradores", category: "Particular", levels: ["Infantil"], address: "Rua Purpurina, 390 · Vila Madalena", lat: -23.5527, lng: -46.6961 },
-      { id: 8, name: "EMEF Jardim das Ideias", category: "Pública", levels: ["Fundamental"], address: "Rua Cardeal Arcoverde, 2.050 · Pinheiros", lat: -23.5668, lng: -46.6897 }
-    ];
-
-    const defaultLocation = { lat: -23.5575, lng: -46.6895 };
-    const favoritesKey = "escolas-por-perto-favorites";
-    let userLocation = { ...defaultLocation };
-    let activeCategory = "all";
-    let selectedSchool = null;
-    let map = null;
-    let markers = new Map();
-    let favorites = loadFavorites();
-
-    const list = document.getElementById("school-list");
-    const count = document.getElementById("result-count");
-    const searchInput = document.getElementById("search");
-    const levelSelect = document.getElementById("level");
-    const radiusSelect = document.getElementById("radius");
-    const sortSelect = document.getElementById("sort");
-    const statusMessage = document.getElementById("status-message");
-
-    function loadFavorites() {
-      try {
-        const saved = JSON.parse(localStorage.getItem(favoritesKey) || "[]");
-        return new Set(Array.isArray(saved) ? saved : []);
-      } catch (error) {
-        console.warn("Não foi possível carregar as escolas favoritas.", error);
-        return new Set();
-      }
-    }
-
-    function distanceBetween(from, to) {
-      const radians = (degrees) => degrees * Math.PI / 180;
-      const latDifference = radians(to.lat - from.lat);
-      const lngDifference = radians(to.lng - from.lng);
-      const value = Math.sin(latDifference / 2) ** 2
-        + Math.cos(radians(from.lat)) * Math.cos(radians(to.lat)) * Math.sin(lngDifference / 2) ** 2;
-      return 6371 * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
-    }
-
-    function getVisibleSchools() {
-      const query = searchInput.value.trim().toLocaleLowerCase("pt-BR");
-      const level = levelSelect.value;
-      const radius = radiusSelect.value;
-      const result = schools
-        .map((school) => ({ ...school, distance: distanceBetween(userLocation, school) }))
-        .filter((school) => {
-          const matchesQuery = !query || `${school.name} ${school.address} ${school.category} ${school.levels.join(" ")}`
-            .toLocaleLowerCase("pt-BR").includes(query);
-          const matchesLevel = level === "all" || school.levels.includes(level);
-          const matchesCategory = activeCategory === "all"
-            || (activeCategory === "favorites" ? favorites.has(school.id) : school.category === activeCategory);
-          const matchesRadius = radius === "all" || school.distance <= Number(radius);
-          return matchesQuery && matchesLevel && matchesCategory && matchesRadius;
-        });
-
-      result.sort(sortSelect.value === "name"
-        ? (a, b) => a.name.localeCompare(b.name, "pt-BR")
-        : (a, b) => a.distance - b.distance);
-      return result;
-    }
-
-    function render() {
-      const visibleSchools = getVisibleSchools();
-      count.textContent = `${visibleSchools.length} ${visibleSchools.length === 1 ? "resultado" : "resultados"}`;
-
-      if (visibleSchools.length === 0) {
-        list.innerHTML = '<div class="empty-state"><strong>Nenhuma escola encontrada</strong>Tente mudar a busca ou os filtros selecionados.</div>';
-      } else {
-        list.innerHTML = visibleSchools.map((school) => `
-          <article class="school-card${selectedSchool === school.id ? " selected" : ""}" data-school-id="${school.id}">
-            <div class="school-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/><path d="M9 10h6"/></svg>
-            </div>
-            <div class="school-main">
-              <h3 class="school-name">${school.name}</h3>
-              <p class="school-address">${school.address}</p>
-              <div class="school-meta">
-                <span class="tag">${school.category}</span>
-                <span class="tag">${school.levels.join(" · ")}</span>
-                <span class="distance">${formatDistance(school.distance)}</span>
-              </div>
-            </div>
-            <div class="card-actions">
-              <button class="favorite${favorites.has(school.id) ? " active" : ""}" type="button" data-favorite-id="${school.id}" aria-label="${favorites.has(school.id) ? "Remover das" : "Adicionar às"} favoritas" aria-pressed="${favorites.has(school.id)}">
-                <svg viewBox="0 0 24 24" fill="${favorites.has(school.id) ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg>
-              </button>
-              <button class="map-link" type="button" data-map-id="${school.id}">Ver no mapa</button>
-            </div>
-          </article>
-        `).join("");
-      }
-
-      renderMarkers(visibleSchools);
-    }
-
-    function formatDistance(distance) {
-      if (distance < 1) return `${Math.round(distance * 1000)} m`;
-      return `${distance.toFixed(1).replace(".", ",")} km`;
-    }
-
-    function setStatus(message, isError = false) {
-      statusMessage.textContent = message;
-      statusMessage.classList.toggle("error", isError);
-    }
-
-    function initMap() {
-      if (!window.L) {
-        document.getElementById("map-empty").classList.add("visible");
-        document.getElementById("map-note").hidden = true;
-        return;
-      }
-
-      map = L.map("map", { scrollWheelZoom: false }).setView([userLocation.lat, userLocation.lng], 13);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>'
-      }).addTo(map);
-      render();
-    }
-
-    function renderMarkers(visibleSchools) {
-      if (!map) return;
-      markers.forEach((marker) => marker.remove());
-      markers.clear();
-
-      visibleSchools.forEach((school) => {
-        const marker = L.marker([school.lat, school.lng]).addTo(map)
-          .bindPopup(`<strong>${school.name}</strong><br>${school.address}<br>${formatDistance(school.distance)}`);
-        marker.on("click", () => selectSchool(school.id, false));
-        markers.set(school.id, marker);
-      });
-
-      if (visibleSchools.length > 0) {
-        const bounds = L.latLngBounds(visibleSchools.map((school) => [school.lat, school.lng]));
-        if (userLocation !== defaultLocation) bounds.extend([userLocation.lat, userLocation.lng]);
-        map.fitBounds(bounds, { padding: [35, 35], maxZoom: 14 });
-      } else {
-        map.setView([userLocation.lat, userLocation.lng], 13);
-      }
-    }
-
-    function selectSchool(id, openPopup = true) {
-      selectedSchool = id;
-      render();
-      const marker = markers.get(id);
-      const school = schools.find((item) => item.id === id);
-      if (marker && school) {
-        map.setView([school.lat, school.lng], Math.max(map.getZoom(), 15));
-        if (openPopup) marker.openPopup();
-      }
-      const card = list.querySelector(`[data-school-id="${id}"]`);
-      if (card) card.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
-
-    document.querySelectorAll(".chip").forEach((button) => {
-      button.addEventListener("click", () => {
-        activeCategory = button.dataset.category;
-        document.querySelectorAll(".chip").forEach((chip) => {
-          const isActive = chip === button;
-          chip.classList.toggle("active", isActive);
-          chip.setAttribute("aria-pressed", String(isActive));
-        });
-        render();
-      });
-    });
-
-    [searchInput, levelSelect, radiusSelect, sortSelect].forEach((control) => {
-      control.addEventListener(control === searchInput ? "input" : "change", render);
-    });
-
-    list.addEventListener("click", (event) => {
-      const favoriteButton = event.target.closest("[data-favorite-id]");
-      if (favoriteButton) {
-        const id = Number(favoriteButton.dataset.favoriteId);
-        if (favorites.has(id)) favorites.delete(id);
-        else favorites.add(id);
-        try {
-          localStorage.setItem(favoritesKey, JSON.stringify([...favorites]));
-        } catch (error) {
-          console.error("Não foi possível salvar as escolas favoritas.", error);
-          setStatus("Não foi possível salvar as favoritas neste navegador.", true);
-        }
-        render();
-        return;
-      }
-
-      const mapButton = event.target.closest("[data-map-id]");
-      if (mapButton) {
-        selectSchool(Number(mapButton.dataset.mapId));
-        return;
-      }
-
-      const card = event.target.closest("[data-school-id]");
-      if (card) selectSchool(Number(card.dataset.schoolId), false);
-    });
-
-    document.getElementById("location-button").addEventListener("click", () => {
-      if (!navigator.geolocation) {
-        setStatus("Seu navegador não oferece suporte à localização.", true);
-        return;
-      }
-
-      setStatus("Obtendo sua localização...");
-      navigator.geolocation.getCurrentPosition(
-        ({ coords }) => {
-          userLocation = { lat: coords.latitude, lng: coords.longitude };
-          document.getElementById("map-note").textContent = "Escolas próximas da sua localização";
-          setStatus("Localização atualizada. As distâncias foram recalculadas.");
-          render();
-        },
-        (error) => {
-          const messages = {
-            1: "Permita o acesso à localização no navegador para buscar escolas próximas.",
-            2: "Não foi possível determinar sua localização. Tente novamente.",
-            3: "A localização demorou demais. Tente novamente."
-          };
-          setStatus(messages[error.code] || "Não foi possível obter sua localização.", true);
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-      );
-    });
-
-    initMap();
-    render();
-  </script>
+  <script src="script.js?v=3"></script>
 </body>
 </html>

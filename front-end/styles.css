@@ -63,6 +63,32 @@ h1 { margin: 9px 0 8px; font-size: clamp(30px, 4vw, 42px); letter-spacing: -1.7p
   border-radius: 16px;
   box-shadow: var(--shadow);
 }
+.crud-panel {
+  margin-bottom: 18px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+.crud-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.crud-heading h2 { margin: 0; font-size: 15px; }
+.crud-heading p { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; margin-top: 18px; }
+.form-grid input { padding-left: 12px; }
+.form-actions { display: flex; gap: 9px; margin-top: 16px; }
+.secondary-button {
+  min-height: 46px;
+  padding: 0 16px;
+  color: #52635d;
+  background: #fff;
+  border: 1px solid #dfe6e1;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 650;
+}
+.secondary-button:hover { background: #f6f8f5; }
+.primary-button:disabled, .delete-link:disabled { cursor: wait; opacity: .65; }
 .field label { display: block; margin: 0 0 7px 2px; color: #53645f; font-size: 12px; font-weight: 700; }
 .input-wrap { position: relative; }
 .input-wrap svg {
@@ -148,7 +174,22 @@ input:focus, select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rg
 .school-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 10px; }
 .tag { padding: 4px 8px; border-radius: 999px; background: #f1f5f2; color: #52635d; font-size: 10px; font-weight: 700; }
 .distance { color: var(--green-dark); font-size: 11px; font-weight: 750; }
-.card-actions { display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; gap: 11px; }
+.card-actions { display: flex; align-items: flex-start; gap: 6px; }
+.card-action-button {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  place-items: center;
+  padding: 0;
+  color: #71817c;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  transition: color .15s, background .15s, border-color .15s, transform .15s;
+}
+.card-action-button:hover { transform: translateY(-1px); }
+.card-action-button svg { width: 15px; height: 15px; }
 .favorite {
   display: grid;
   width: 32px;
@@ -161,8 +202,9 @@ input:focus, select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rg
 }
 .favorite:hover, .favorite.active { color: #d45858; background: #fff5f4; border-color: #f1d5d2; }
 .favorite svg { width: 16px; height: 16px; }
-.map-link { padding: 0; color: var(--green); background: none; border: 0; font-size: 11px; font-weight: 750; white-space: nowrap; }
-.map-link:hover { text-decoration: underline; }
+.edit-action:hover { color: var(--green-dark); background: var(--green-pale); border-color: #c9e2d5; }
+.delete-action:hover { color: #b54141; background: #fff5f4; border-color: #f1d5d2; }
+.card-action-button:focus-visible { outline: 3px solid rgba(35, 123, 97, .24); outline-offset: 2px; }
 
 .map-panel {
   position: sticky;
@@ -220,14 +262,18 @@ input:focus, select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rg
   .topbar { height: 64px; padding: 0 18px; }
   .top-label { font-size: 11px; }
   main { padding: 31px 16px 42px; }
+  .crud-panel { padding: 14px; }
+  .form-grid { grid-template-columns: 1fr; gap: 11px; }
+  .crud-heading { align-items: flex-start; }
   .search-panel { grid-template-columns: 1fr; gap: 11px; padding: 14px; }
   .field.search-field { grid-column: auto; }
   .filters-row { align-items: flex-start; flex-direction: column; }
   .sort-wrap { width: 100%; justify-content: space-between; }
   .sort-wrap select { flex: 1; }
-  .school-card { grid-template-columns: 42px minmax(0, 1fr) auto; gap: 10px; padding: 13px; }
+  .school-card { grid-template-columns: 42px minmax(0, 1fr); gap: 10px; padding: 13px; }
   .school-icon { width: 42px; height: 42px; }
   .school-icon svg { width: 21px; height: 21px; }
   .school-name { font-size: 13px; }
+  .card-actions { grid-column: 2; }
   .map-panel, #map { min-height: 290px; height: 290px; }
 }

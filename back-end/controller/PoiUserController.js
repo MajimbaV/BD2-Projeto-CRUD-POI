@@ -41,7 +41,7 @@ export async function updatePoiUser(req, res) {
             return res.status(404).json({ message: "Local não encontrado" });
         }
 
-        local.update({
+        await local.update({
             nome,
             descricao,
             categoria,
