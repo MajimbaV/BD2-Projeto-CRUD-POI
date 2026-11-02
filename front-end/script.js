@@ -104,6 +104,22 @@ function setStatus(message, isError = false) {
   statusMessage.classList.toggle("error", isError);
 }
 
+function getUserLocation() {  
+  if (!navigator.geolocation) {
+    setStatus("Navegador sem suporte a geolocalização.", true);
+    return;
+  }
+  setStatus("Obtendo localização do navegador...");
+  navigator.geolocation.getCurrentPosition(
+    ({ coords }) => {
+      definirCentroDeBusca(coords.latitude, coords.longitude, "Sua localização atual");
+      setStatus("Localização obtida com sucesso! Escolas ao redor carregadas.");
+    },
+    (err) => setStatus("Não foi possível obter sua localização.", true),
+    { timeout: 10000 }
+  );
+};
+
 // ============================================================================
 // 2. Modal de Detalhes da Escola (Critérios Ponderados)
 // ============================================================================
@@ -854,21 +870,10 @@ list.addEventListener("click", (event) => {
 });
 
 document.getElementById("location-button").addEventListener("click", () => {
-  if (!navigator.geolocation) {
-    setStatus("Navegador sem suporte a geolocalização.", true);
-    return;
-  }
-  setStatus("Obtendo localização do navegador...");
-  navigator.geolocation.getCurrentPosition(
-    ({ coords }) => {
-      definirCentroDeBusca(coords.latitude, coords.longitude, "Sua localização atual");
-      setStatus("Localização obtida com sucesso! Escolas ao redor carregadas.");
-    },
-    (err) => setStatus("Não foi possível obter sua localização.", true),
-    { timeout: 10000 }
-  );
+  getUserLocation();
 });
 
 // Inicialização
 initMap();
+getUserLocation();
 loadPoints();
