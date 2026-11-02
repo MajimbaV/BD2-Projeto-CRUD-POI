@@ -11,7 +11,7 @@ const defaultLocation = { lat: -7.11532, lng: -34.861 };
 const favoritesKey = "pontos-por-perto-favorites";
 
 // Estado da Aplicação
-let currentView = "schools"; // Inicia mostrando as escolas
+let currentView = "poi"; // Inicia mostrando os pontos de interesse
 let points = [];
 let schools = [];
 let centerLocation = { ...defaultLocation }; // Centro atual de busca
