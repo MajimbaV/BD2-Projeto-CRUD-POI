@@ -474,6 +474,8 @@ function renderSchoolsList() {
     filtered.sort((a, b) => b.score_infraestrutura - a.score_infraestrutura);
   } else if (sortSelect.value === "name") {
     filtered.sort((a, b) => a.no_escola.localeCompare(b.no_escola, "pt-BR"));
+  } else if (sortSelect.value === "distance"){
+    filtered.sort((a, b) => a.distancia_metros - b.distancia_metros);
   }
 
   count.textContent = `${filtered.length} ${filtered.length === 1 ? "escola" : "escolas"}`;
