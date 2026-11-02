@@ -277,3 +277,127 @@ input:focus, select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rg
   .card-actions { grid-column: 2; }
   .map-panel, #map { min-height: 290px; height: 290px; }
 }
+
+/* ==============================================================
+   Novos estilos: Alternador de Visualização & Suporte a Escolas
+   ============================================================== */
+.view-switch-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.view-tab {
+  flex: 1;
+  padding: 12px 18px;
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--muted);
+  transition: all .2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.view-tab:hover {
+  border-color: var(--green);
+  color: var(--ink);
+}
+
+.view-tab.active {
+  background: var(--green-pale);
+  border-color: var(--green);
+  color: var(--green-dark);
+}
+
+.field.full-width {
+  grid-column: 1 / -1;
+}
+
+.input-action-wrap {
+  display: flex;
+  gap: 8px;
+}
+
+.input-action-wrap input {
+  flex: 1;
+}
+
+.input-action-wrap button {
+  white-space: nowrap;
+  padding: 0 16px;
+}
+
+.field-hint {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.score-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 750;
+  background: #fdf3d8;
+  color: #8c6000;
+}
+
+.score-badge.high {
+  background: #e1f5eb;
+  color: #176d49;
+}
+
+.score-badge.medium {
+  background: #fef4db;
+  color: #8a6503;
+}
+
+.score-badge.low {
+  background: #fae8e8;
+  color: #9c2e2e;
+}
+
+.infra-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.infra-chip {
+  font-size: 11px;
+  padding: 2px 6px;
+  background: #eef2ef;
+  border-radius: 6px;
+  color: var(--muted);
+}
+
+.find-schools-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 8px;
+  background: var(--green-pale);
+  color: var(--green-dark);
+  border: 1px solid var(--green);
+  margin-top: 8px;
+  cursor: pointer;
+}
+
+.find-schools-button:hover {
+  background: var(--green);
+  color: #fff;
+}
+
