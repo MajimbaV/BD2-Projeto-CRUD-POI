@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#f6f8f5">
-  <title>Escolas da Paraíba e Pontos de Interesse (PostGIS)</title>
+  <title>Escolas da Paraíba e Pontos de Interesse</title>
   <link rel="preconnect" href="https://unpkg.com">
   <link rel="preconnect" href="https://tile.openstreetmap.org">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -18,20 +18,19 @@
       </span>
       Escolas & Pontos PB
     </div>
-    <span class="top-label">Banco de Dados Espacial · PostGIS</span>
   </header>
 
   <main>
     <section class="intro">
-      <div class="eyebrow">Projeto de BD2 · PostGIS & Leaflet</div>
+      <div class="eyebrow">Melhores Escolas Ao Meu Redor</div>
       <h1>Encontre as melhores escolas<br>perto de você na Paraíba.</h1>
       <p>Cadastre seus locais de referência e veja as escolas com melhor infraestrutura num raio de distância.</p>
     </section>
 
     <!-- Alternador de Visão: Meus Locais vs Escolas Ranqueadas -->
     <div class="view-switch-row">
-      <button class="view-tab active" id="tab-poi" type="button">📍 Meus Pontos de Interesse (CRUD)</button>
-      <button class="view-tab" id="tab-schools" type="button">🏫 Melhores Escolas (Ranking Ponderado)</button>
+      <button class="view-tab active" id="tab-poi" type="button">📍 Meus Pontos de Interesse</button>
+      <button class="view-tab" id="tab-schools" type="button">🏫 Melhores Escolas</button>
     </div>
 
     <!-- Painel de Cadastro do CRUD de POI com Geocodificação Nominatim -->
@@ -61,10 +60,10 @@
             </select>
           </div>
           <div class="field full-width">
-            <label for="point-address">Endereço (Geocodificação Nominatim)</label>
+            <label for="point-address">Endereço</label>
             <div class="input-action-wrap">
               <input id="point-address" name="endereco" placeholder="Ex: Av. Epitácio Pessoa, João Pessoa, PB">
-              <button class="secondary-button" id="search-address-button" type="button" title="Buscar coordenadas pelo endereço usando Nominatim">
+              <button class="secondary-button" id="search-address-button" type="button" title="Buscar coordenadas pelo endereço">
                 🔍 Buscar no mapa
               </button>
             </div>
@@ -151,7 +150,7 @@
         </div>
         <div class="school-list" id="poi-list"></div>
         <p class="status-message" id="status-message" role="status" aria-live="polite"></p>
-        <p class="footer-note">Cálculo de infraestrutura ponderada PostGIS: (PNE×3 + LabInfo×3 + Biblio×2 + LabCiências×2 + BandaLarga×2 + PC×2 + Net×1 + Leitura×1 + Quadra×1 + Parque×1).</p>
+        <p class="footer-note">Cálculo de infraestrutura ponderada: (PNE×3 + LabInfo×3 + Biblio×2 + LabCiências×2 + BandaLarga×2 + PC×2 + Net×1 + Leitura×1 + Quadra×1 + Parque×1).</p>
       </section>
       <section class="map-panel" aria-label="Mapa espacial">
         <div id="map"></div>
@@ -159,7 +158,7 @@
         <div class="map-empty" id="map-empty">O mapa não pôde ser carregado. A lista continua disponível.</div>
       </section>
     </div>
-  <!-- Modal de Detalhes da Escola (PostGIS) -->
+  <!-- Modal de Detalhes da Escola-->
   <div class="modal-overlay" id="school-modal-overlay" hidden>
     <div class="modal-container" role="dialog" aria-modal="true" aria-labelledby="modal-school-name">
       <div class="modal-header">
@@ -203,7 +202,7 @@
         </div>
 
         <div class="modal-footer-info">
-          <small>Código INEP: <strong id="modal-school-inep">--</strong> · Dados oficiais do Censo Escolar da Paraíba (PostGIS)</small>
+          <small>Código INEP: <strong id="modal-school-inep">--</strong> · Dados oficiais do Censo Escolar da Paraíba</small>
         </div>
       </div>
     </div>

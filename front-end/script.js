@@ -355,7 +355,7 @@ async function loadPoints() {
 
 async function loadSchoolsProximas(lat, lng, raioKm = 2) {
   const raioMetros = Number(raioKm) * 1000;
-  setStatus(`Consultando PostGIS num raio de ${raioKm} km...`);
+  setStatus(`Consultando pontos num raio de ${raioKm} km...`);
 
   try {
     const url = `${escolasApiUrl}/proximas?latitude=${lat}&longitude=${lng}&raio=${raioMetros}&limite=50`;
@@ -404,7 +404,7 @@ function render() {
 }
 
 function renderPoiList() {
-  resultsTitle.textContent = "Meus Pontos de Interesse (CRUD)";
+  resultsTitle.textContent = "Meus Pontos de Interesse";
   categoryFilterWrap.hidden = false;
 
   const query = searchInput.value.trim().toLocaleLowerCase("pt-BR");
@@ -460,7 +460,7 @@ function renderPoiList() {
 }
 
 function renderSchoolsList() {
-  resultsTitle.textContent = "Melhores Escolas (Ranking PostGIS)";
+  resultsTitle.textContent = "Melhores Escolas (Ranking de Infraestrutura)";
   categoryFilterWrap.hidden = true;
 
   const query = searchInput.value.trim().toLocaleLowerCase("pt-BR");
