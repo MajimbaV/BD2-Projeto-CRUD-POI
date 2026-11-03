@@ -552,12 +552,12 @@ function renderPoiMarkers(visiblePoints) {
     const popup = `
       <strong>${escapeHtml(point.name)}</strong><br>
       <small>${escapeHtml(point.category)} · ${escapeHtml(point.address)}</small><br><br>
-      <button class="find-schools-button" onclick="window.buscarEscolasPertoDe(${point.lat}, ${point.lng}, '${escapeHtml(point.name)}')">
-        🏫 Ver escolas perto daqui
+      <button class="find-schools-button" onclick="buscarEscolasPertoDe(${point.lat}, ${point.lng}, '${escapeHtml(point.name)}')">
+        Ver escolas perto daqui
       </button>
     `;
     const marker = L.marker([point.lat, point.lng]).addTo(map).bindPopup(popup);
-    marker.on("click", () => selectPoint(point.id, false));
+    marker.on("click", () => selectPoint(point.id));
     markers.set(point.id, marker);
   });
 }
@@ -611,7 +611,7 @@ abrirModalEscolaPorId = function(coEscola) {
   if (school) openSchoolModal(school);
 };
 
-window.buscarEscolasPertoDe = function(lat, lng, nome) {
+buscarEscolasPertoDe = function(lat, lng, nome) {
   currentView = "schools";
   tabSchools.classList.add("active");
   tabPoi.classList.remove("active");
@@ -834,7 +834,7 @@ list.addEventListener("click", (event) => {
     const lat = Number(findButton.dataset.findSchoolsLat);
     const lng = Number(findButton.dataset.findSchoolsLng);
     const nome = findButton.dataset.findSchoolsName;
-    window.buscarEscolasPertoDe(lat, lng, nome);
+    buscarEscolasPertoDe(lat, lng, nome);
     return;
   }
 
