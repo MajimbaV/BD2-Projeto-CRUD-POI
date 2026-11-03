@@ -2,7 +2,7 @@
 // script.js: Aplicação Web Espacial Inteligente (PostGIS + Leaflet + Nominatim)
 // ============================================================================
 
-const apiBase = "http://localhost:3000/api";
+const apiBase = "https://api-dpbo.onrender.com/api";
 const poiApiUrl = `${apiBase}/poiuser`;
 const escolasApiUrl = `${apiBase}/escolas`;
 
@@ -552,12 +552,12 @@ function renderPoiMarkers(visiblePoints) {
     const popup = `
       <strong>${escapeHtml(point.name)}</strong><br>
       <small>${escapeHtml(point.category)} · ${escapeHtml(point.address)}</small><br><br>
-      <button class="find-schools-button" onclick="window.buscarEscolasPertoDe(${point.lat}, ${point.lng}, '${escapeHtml(point.name)}')">
-        🏫 Ver escolas perto daqui
+      <button class="find-schools-button" onclick="buscarEscolasPertoDe(${point.lat}, ${point.lng}, '${escapeHtml(point.name)}')">
+        Ver escolas perto daqui
       </button>
     `;
     const marker = L.marker([point.lat, point.lng]).addTo(map).bindPopup(popup);
-    marker.on("click", () => selectPoint(point.id, false));
+    marker.on("click", () => selectPoint(point.id));
     markers.set(point.id, marker);
   });
 }
@@ -585,8 +585,8 @@ function renderSchoolMarkers(visibleSchools) {
           <span>Nota:</span>
           <strong style="color:${color}; font-size:14px;">${score}/18 pts</strong>
         </div>
-        <button class="primary-button" style="width:100%; padding:6px 10px; font-size:12px;" onclick="window.abrirModalEscolaPorId(${school.co_escola})">
-          🔍 Ver detalhes completos
+        <button class="primary-button" style="width:100%; padding:6px 10px; font-size:12px;" onclick="abrirModalEscolaPorId(${school.co_escola})">
+          Ver detalhes completos
         </button>
       </div>
     `;
@@ -600,22 +600,18 @@ function renderSchoolMarkers(visibleSchools) {
       fillOpacity: 0.95
     }).addTo(map).bindPopup(popup);
 
-    // Ao clicar no círculo da escola, abre o modal detalhado!
-    marker.on("click", () => {
-      selectedItemId = school.co_escola;
-      openSchoolModal(school);
-    });
-
     schoolMarkers.set(school.co_escola, marker);
   });
 }
 
-window.abrirModalEscolaPorId = function(coEscola) {
-  const school = schools.find((s) => s.co_escola === coEscola);
+abrirModalEscolaPorId = function(coEscola) {
+  const school = schools.find((s) => parseInt(s.co_escola) === parseInt(coEscola));
+  console.log("Lista de Escolas:" , schools);
+  console.log("Abrindo modal da escola:", coEscola);
   if (school) openSchoolModal(school);
 };
 
-window.buscarEscolasPertoDe = function(lat, lng, nome) {
+buscarEscolasPertoDe = function(lat, lng, nome) {
   currentView = "schools";
   tabSchools.classList.add("active");
   tabPoi.classList.remove("active");
@@ -838,7 +834,7 @@ list.addEventListener("click", (event) => {
     const lat = Number(findButton.dataset.findSchoolsLat);
     const lng = Number(findButton.dataset.findSchoolsLng);
     const nome = findButton.dataset.findSchoolsName;
-    window.buscarEscolasPertoDe(lat, lng, nome);
+    buscarEscolasPertoDe(lat, lng, nome);
     return;
   }
 
