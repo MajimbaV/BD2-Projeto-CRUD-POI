@@ -33,7 +33,9 @@ const count = document.getElementById("result-count");
 const searchInput = document.getElementById("search");
 const categorySelect = document.getElementById("category");
 const radiusSelect = document.getElementById("radius");
+const filterChipsWrap = document.getElementById("filter-chips");
 const sortSelect = document.getElementById("sort");
+const sortWrap = document.getElementById("sort-label");
 const statusMessage = document.getElementById("status-message");
 const pointForm = document.getElementById("point-form");
 const savePointButton = document.getElementById("save-point-button");
@@ -422,6 +424,8 @@ function render() {
 function renderPoiList() {
   resultsTitle.textContent = "Meus Pontos de Interesse";
   categoryFilterWrap.hidden = false;
+  filterChipsWrap.hidden = false; 
+  sortWrap.hidden = true;         
 
   const query = searchInput.value.trim().toLocaleLowerCase("pt-BR");
   const category = categorySelect.value;
@@ -478,6 +482,8 @@ function renderPoiList() {
 function renderSchoolsList() {
   resultsTitle.textContent = "Melhores Escolas (Ranking de Infraestrutura)";
   categoryFilterWrap.hidden = true;
+  filterChipsWrap.hidden = true; 
+  sortWrap.hidden = false;       
 
   const query = searchInput.value.trim().toLocaleLowerCase("pt-BR");
 
@@ -871,6 +877,19 @@ list.addEventListener("click", (event) => {
 
 document.getElementById("location-button").addEventListener("click", () => {
   getUserLocation();
+});
+
+filterChipsWrap.addEventListener("click", (event) => {
+  const chip = event.target.closest(".chip");
+  if (!chip) return;
+
+  // Remove a classe "active" de todos os botões e adiciona no clicado
+  filterChipsWrap.querySelectorAll(".chip").forEach(btn => btn.classList.remove("active"));
+  chip.classList.add("active");
+
+  // Atualiza a variável de filtro (all ou favorites) e re-renderiza a tela
+  activeFilter = chip.dataset.filter;
+  render();
 });
 
 // Inicialização
