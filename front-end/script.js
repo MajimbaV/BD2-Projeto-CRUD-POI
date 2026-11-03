@@ -11,7 +11,7 @@ const defaultLocation = { lat: -7.11532, lng: -34.861 };
 const favoritesKey = "pontos-por-perto-favorites";
 
 // Estado da Aplicação
-let currentView = "schools"; // Inicia mostrando as escolas
+let currentView = "poi"; // Inicia mostrando os pontos de interesse
 let points = [];
 let schools = [];
 let centerLocation = { ...defaultLocation }; // Centro atual de busca
@@ -33,7 +33,9 @@ const count = document.getElementById("result-count");
 const searchInput = document.getElementById("search");
 const categorySelect = document.getElementById("category");
 const radiusSelect = document.getElementById("radius");
+const filterChipsWrap = document.getElementById("filter-chips");
 const sortSelect = document.getElementById("sort");
+const sortWrap = document.getElementById("sort-label");
 const statusMessage = document.getElementById("status-message");
 const pointForm = document.getElementById("point-form");
 const savePointButton = document.getElementById("save-point-button");
@@ -72,6 +74,16 @@ function loadFavorites() {
   }
 }
 
+function toggleFavorite(id) {
+  if (favorites.has(id)) {
+    favorites.delete(id);
+  } else {
+    favorites.add(id);
+  }
+  localStorage.setItem(favoritesKey, JSON.stringify(Array.from(favorites)));
+  render();
+}
+
 function escapeHtml(value) {
   if (value == null) return "";
   return String(value).replace(/[&<>"']/g, (character) => ({
@@ -93,6 +105,22 @@ function setStatus(message, isError = false) {
   statusMessage.textContent = message;
   statusMessage.classList.toggle("error", isError);
 }
+
+function getUserLocation() {  
+  if (!navigator.geolocation) {
+    setStatus("Navegador sem suporte a geolocalização.", true);
+    return;
+  }
+  setStatus("Obtendo localização do navegador...");
+  navigator.geolocation.getCurrentPosition(
+    ({ coords }) => {
+      definirCentroDeBusca(coords.latitude, coords.longitude, "Sua localização atual");
+      setStatus("Localização obtida com sucesso! Escolas ao redor carregadas.");
+    },
+    (err) => setStatus("Não foi possível obter sua localização.", true),
+    { timeout: 10000 }
+  );
+};
 
 // ============================================================================
 // 2. Modal de Detalhes da Escola (Critérios Ponderados)
@@ -345,7 +373,7 @@ async function loadPoints() {
 
 async function loadSchoolsProximas(lat, lng, raioKm = 2) {
   const raioMetros = Number(raioKm) * 1000;
-  setStatus(`Consultando PostGIS num raio de ${raioKm} km...`);
+  setStatus(`Consultando pontos num raio de ${raioKm} km...`);
 
   try {
     const url = `${escolasApiUrl}/proximas?latitude=${lat}&longitude=${lng}&raio=${raioMetros}&limite=50`;
@@ -394,8 +422,10 @@ function render() {
 }
 
 function renderPoiList() {
-  resultsTitle.textContent = "Meus Pontos de Interesse (CRUD)";
+  resultsTitle.textContent = "Meus Pontos de Interesse";
   categoryFilterWrap.hidden = false;
+  filterChipsWrap.hidden = false; 
+  sortWrap.hidden = true;         
 
   const query = searchInput.value.trim().toLocaleLowerCase("pt-BR");
   const category = categorySelect.value;
@@ -450,8 +480,10 @@ function renderPoiList() {
 }
 
 function renderSchoolsList() {
-  resultsTitle.textContent = "Melhores Escolas (Ranking PostGIS)";
+  resultsTitle.textContent = "Melhores Escolas (Ranking de Infraestrutura)";
   categoryFilterWrap.hidden = true;
+  filterChipsWrap.hidden = true; 
+  sortWrap.hidden = false;       
 
   const query = searchInput.value.trim().toLocaleLowerCase("pt-BR");
 
@@ -464,6 +496,8 @@ function renderSchoolsList() {
     filtered.sort((a, b) => b.score_infraestrutura - a.score_infraestrutura);
   } else if (sortSelect.value === "name") {
     filtered.sort((a, b) => a.no_escola.localeCompare(b.no_escola, "pt-BR"));
+  } else if (sortSelect.value === "distance"){
+    filtered.sort((a, b) => a.distancia_metros - b.distancia_metros);
   }
 
   count.textContent = `${filtered.length} ${filtered.length === 1 ? "escola" : "escolas"}`;
@@ -790,6 +824,15 @@ radiusSelect.addEventListener("change", () => {
 });
 
 list.addEventListener("click", (event) => {
+  const favoriteButton = event.target.closest("[data-favorite-id]");
+  if (favoriteButton) {
+    event.stopPropagation();
+    const id = favoriteButton.dataset.favoriteId;
+    toggleFavorite(id);
+    return;
+  }
+
+
   const findButton = event.target.closest("[data-find-schools-lat]");
   if (findButton) {
     const lat = Number(findButton.dataset.findSchoolsLat);
@@ -833,21 +876,23 @@ list.addEventListener("click", (event) => {
 });
 
 document.getElementById("location-button").addEventListener("click", () => {
-  if (!navigator.geolocation) {
-    setStatus("Navegador sem suporte a geolocalização.", true);
-    return;
-  }
-  setStatus("Obtendo localização do navegador...");
-  navigator.geolocation.getCurrentPosition(
-    ({ coords }) => {
-      definirCentroDeBusca(coords.latitude, coords.longitude, "Sua localização atual");
-      setStatus("Localização obtida com sucesso! Escolas ao redor carregadas.");
-    },
-    (err) => setStatus("Não foi possível obter sua localização.", true),
-    { timeout: 10000 }
-  );
+  getUserLocation();
+});
+
+filterChipsWrap.addEventListener("click", (event) => {
+  const chip = event.target.closest(".chip");
+  if (!chip) return;
+
+  // Remove a classe "active" de todos os botões e adiciona no clicado
+  filterChipsWrap.querySelectorAll(".chip").forEach(btn => btn.classList.remove("active"));
+  chip.classList.add("active");
+
+  // Atualiza a variável de filtro (all ou favorites) e re-renderiza a tela
+  activeFilter = chip.dataset.filter;
+  render();
 });
 
 // Inicialização
 initMap();
+getUserLocation();
 loadPoints();
