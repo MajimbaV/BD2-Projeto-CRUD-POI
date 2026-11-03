@@ -585,8 +585,8 @@ function renderSchoolMarkers(visibleSchools) {
           <span>Nota:</span>
           <strong style="color:${color}; font-size:14px;">${score}/18 pts</strong>
         </div>
-        <button class="primary-button" style="width:100%; padding:6px 10px; font-size:12px;" onclick="window.abrirModalEscolaPorId(${school.co_escola})">
-          🔍 Ver detalhes completos
+        <button class="primary-button" style="width:100%; padding:6px 10px; font-size:12px;" onclick="abrirModalEscolaPorId(${school.co_escola})">
+          Ver detalhes completos
         </button>
       </div>
     `;
@@ -600,18 +600,14 @@ function renderSchoolMarkers(visibleSchools) {
       fillOpacity: 0.95
     }).addTo(map).bindPopup(popup);
 
-    // Ao clicar no círculo da escola, abre o modal detalhado!
-    marker.on("click", () => {
-      selectedItemId = school.co_escola;
-      openSchoolModal(school);
-    });
-
     schoolMarkers.set(school.co_escola, marker);
   });
 }
 
-window.abrirModalEscolaPorId = function(coEscola) {
-  const school = schools.find((s) => s.co_escola === coEscola);
+abrirModalEscolaPorId = function(coEscola) {
+  const school = schools.find((s) => parseInt(s.co_escola) === parseInt(coEscola));
+  console.log("Lista de Escolas:" , schools);
+  console.log("Abrindo modal da escola:", coEscola);
   if (school) openSchoolModal(school);
 };
 
