@@ -2,7 +2,7 @@
 // script.js: Aplicação Web Espacial Inteligente (PostGIS + Leaflet + Nominatim)
 // ============================================================================
 
-const apiBase = "http://localhost:3000/api";
+const apiBase = "https://api-dpbo.onrender.com/api";
 const poiApiUrl = `${apiBase}/poiuser`;
 const escolasApiUrl = `${apiBase}/escolas`;
 
